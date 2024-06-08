@@ -1,0 +1,5 @@
+llama0index==0.9.15
+langchain==0.0.350
+sentence-transformers
+weaviate-client
+python-box
