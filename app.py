@@ -56,7 +56,7 @@ if st.button('Get Recommendations'):
             rows = len(similarities) // num_cols + (len(similarities) % num_cols > 0)
             cols = st.columns(num_cols)
 
-            for i, row in similarities.iterrows():
+            for i, row in df_top_ten.iterrows():
                 with cols[i % num_cols]:
                     st.markdown(f"""
                     <div style="
