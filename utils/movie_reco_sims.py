@@ -23,7 +23,8 @@ class MovieRecommender:
                 'popularity': x.metadata['popularity'],
                 'score': round(x.metadata['score'],1),
                 'synopsis': x.metadata['synopsis'],
-                'year': x.metadata['year']
+                'year': x.metadata['year'],
+                'poster_path': x.metadata['poster_path']
             }
             top_ten.append(movie_metadata)
 

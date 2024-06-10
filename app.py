@@ -5,7 +5,8 @@ from weaviate.auth import AuthApiKey
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 
-from movie_reco_sims import MovieRecommender
+from utils.movie_reco_sims import MovieRecommender
+from utils.constants import WEAVIATE_API_KEY, WEAVIATE_INDEX_NAME, WEAVIATE_URL
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -18,8 +19,8 @@ soups = pd.Series(df['soup'].values, index=df['title'])
 
 # Connecting to Weaviate Cloud
 client = weaviate.connect_to_weaviate_cloud(
-    cluster_url="https://movie-recommend-system-final-c4nbzi5z.weaviate.network",                       # `weaviate_url`: your Weaviate URL
-    auth_credentials=AuthApiKey("mjJgO65kU2npQjuk7UE9y2k6LxPGrqjIlbpV"),      # `weaviate_key`: your Weaviate API key
+    cluster_url=WEAVIATE_URL,                       
+    auth_credentials=AuthApiKey(WEAVIATE_API_KEY),      
 )
 
 embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
@@ -31,7 +32,7 @@ embeddings = HuggingFaceEmbeddings(
 
 vector_db = WeaviateVectorStore(
     client=client,
-    index_name="LangChain_2adbdf1cd46e49c0ae3561cd1aa07cbe",
+    index_name=WEAVIATE_INDEX_NAME,
     text_key="text",
     embedding=embeddings
 )
@@ -67,6 +68,7 @@ if st.button('Get Recommendations'):
                         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
                         text-align: center;
                         margin: 10px;">
+                        <img src="{row['poster_path']}" alt="{row['movie']} poster">
                         <h4 style="margin: 0; font-size: 1.5em; color: #333;">{row['movie']}</h4>
                         <p style="margin: 10px 0 0; font-size: 1em; color: #666;">{row['language']} ({row['year']}) | Score: {row['score']}</p>
                     </div>

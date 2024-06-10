@@ -166,6 +166,3 @@ Data/tmdb_movies.csv
 
 #Quantized model
 /saved-model/
-
-# Config File
-/config/
