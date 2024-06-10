@@ -1,6 +1,8 @@
+/* static/styles.css */
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    background-color: white; /* Change background to white */
     margin: 0;
     padding: 0;
 }
@@ -26,7 +28,7 @@ h1 {
 
 #movie-title {
     padding: 10px;
-    font-size: 16px;
+    font-size: 50px;
     width: 70%;
     margin-right: 10px;
 }
@@ -34,7 +36,7 @@ h1 {
 button {
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #007bff;
+    background-color: black;
     color: #fff;
     border: none;
     cursor: pointer;
@@ -42,7 +44,7 @@ button {
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #fa7f4e;
 }
 
 .recommendations {
@@ -73,11 +75,12 @@ button:hover {
 }
 
 .grid-item {
-    background-color: #f8f8f8;
+    background-color: #fa7f4e; /* Change background to light orange */
     border: 1px solid #ddd;
     border-radius: 10px;
     padding: 20px;
-    width: 300px; /* Adjust the width as needed */
+    width: 225px; /* Adjust the width as needed */
+    max-height: 450px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     text-align: center;
     margin: 10px;
@@ -87,10 +90,20 @@ button:hover {
     margin: 0;
     font-size: 1.5em;
     color: #333;
+    text-align: center;
+    padding: 5px;
 }
 
 .grid-item p {
     margin: 10px 0 0;
     font-size: 1em;
     color: #666;
+    text-align: center;
+}
+
+.grid-item img {
+    width: 175px;  
+    height: auto;  /* Maintain aspect ratio */
+    border-radius: 5px;
+    margin-bottom: 5px;
 }

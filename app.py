@@ -1,4 +1,5 @@
 import streamlit as st
+from st_keyup import st_keyup
 import pandas as pd
 import weaviate
 from weaviate.auth import AuthApiKey
@@ -11,6 +12,9 @@ from utils.constants import WEAVIATE_API_KEY, WEAVIATE_INDEX_NAME, WEAVIATE_URL
 import warnings
 warnings.filterwarnings("ignore")
 
+# Define the base URL for poster images
+BASE_POSTER_URL = "https://image.tmdb.org/t/p/w500"
+
 # Creating soups
 df = pd.read_csv('Data/final_metadata.csv')
 df['soup'] = df.apply(lambda row: f"Title: {row['title']}. Genres: {row['genres']}. Keywords: {row['keywords']}. Cast: {row['cast']}. Director: {row['director']}.", axis=1)
@@ -20,7 +24,8 @@ soups = pd.Series(df['soup'].values, index=df['title'])
 # Connecting to Weaviate Cloud
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=WEAVIATE_URL,                       
-    auth_credentials=AuthApiKey(WEAVIATE_API_KEY),      
+    auth_credentials=AuthApiKey(WEAVIATE_API_KEY),  
+    skip_init_checks=True    
 )
 
 embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
@@ -39,72 +44,85 @@ vector_db = WeaviateVectorStore(
 
 recommender = MovieRecommender(soups, vector_db)
 
+# Reference the external CSS file
+# Load CSS file content
+def load_css(file_path ='static/styles.css'):
+    with open(file_path) as f:
+        return f.read()
+
+css = load_css("static/styles.css")
+
+# Inject CSS into the app
+st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
 st.title('Movie Recommender System')
 
-movie_title = st.text_input('Enter a movie title:', '')
+## Select Movies
+movie_list = df['title'].values
+movie_title = st.selectbox('Select a movie title:', options=movie_list)
 
-## Last good method
-if st.button('Get Recommendations'):
-    if movie_title:
-        try:
-            similarities, df_top_ten = recommender.get_recommendations(movie_title)
-
-            st.subheader('Top 10 similar movies')
-            
-            # Create a grid with Streamlit's columns
-            num_cols = 3  # Number of columns in the grid
-            rows = len(similarities) // num_cols + (len(similarities) % num_cols > 0)
-            cols = st.columns(num_cols)
-
-            for i, row in df_top_ten.iterrows():
-                with cols[i % num_cols]:
-                    st.markdown(f"""
-                    <div style="
-                        background-color: #f8f8f8;
-                        border: 1px solid #ddd;
-                        border-radius: 10px;
-                        padding: 20px;
-                        width: 100%;
-                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-                        text-align: center;
-                        margin: 10px;">
-                        <img src="{row['poster_path']}" alt="{row['movie']} poster">
-                        <h4 style="margin: 0; font-size: 1.5em; color: #333;">{row['movie']}</h4>
-                        <p style="margin: 10px 0 0; font-size: 1em; color: #666;">{row['language']} ({row['year']}) | Score: {row['score']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-        except ValueError as e:
-            st.error(str(e))
-    else:
-        st.error('Please enter a movie title.')
-
-# if st.button('Get Recommendations'):
+# ## Last good method
+# if movie_title != "Select a movie" and st.button('Get Recommendations'):
 #     if movie_title:
 #         try:
-#             similarities, df_top_ten = recommender.get_recommendations(movie_title)
+#             df_top_ten = recommender.get_recommendations(movie_title)
 
-#             # Generate HTML for the grid items
-#             grid_items = ""
-#             for index, row in similarities.iterrows():
-#                 grid_items += f"""
-#                 <div class="grid-item">
-#                     <h3>{row['movie']}</h3>
-#                     <p>{row['language']} ({row['year']}) | Score: {row['score']}</p>
-#                 </div>
-#                 """
+#             st.subheader(f'Top 10 similar movies to "{movie_title}"')
+            
+#             # Create a grid with Streamlit's columns
+#             num_cols = 3  # Number of columns in the grid
+#             rows = len(df_top_ten) // num_cols + (len(df_top_ten) % num_cols > 0)
+#             cols = st.columns(num_cols)
 
-#             # Read the HTML template
-#             with open("templates/index.html", "r") as file:
-#                 html_template = file.read()
-
-#             # Replace the placeholder with the generated grid items
-#             html_content = html_template.replace("{{ recommendations }}", grid_items)
-
-#             # Render the HTML content
-#             st.markdown(html_content, unsafe_allow_html=True)
+#             for i, row in df_top_ten.iterrows():
+#                 with cols[i % num_cols]:
+#                     poster_url = BASE_POSTER_URL + row['poster_path']
+#                     st.markdown(f"""
+#                     <div style="
+#                         background-color: #f8f8f8;
+#                         border: 1px solid #ddd;
+#                         border-radius: 10px;
+#                         padding: 20px;
+#                         width: 100%;
+#                         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+#                         text-align: center;
+#                         margin: 10px;">
+#                         <img src="{poster_url}" alt="{row['movie']} poster" style="width: 175px; height: auto; border-radius: 5px; margin-bottom: 5px;">
+#                         <h4 style="margin: 0; font-size: 1.5em; color: #333; text-align: center;">{row['movie']}</h4>
+#                         <p style="margin: 5px 0 0; font-size: 1em; color: #666; text-align: center;">{row['language']} ({int(row['year'])}) | Score: {row['score']}</p>
+#                     </div>
+#                     """, unsafe_allow_html=True)
 
 #         except ValueError as e:
 #             st.error(str(e))
 #     else:
 #         st.error('Please enter a movie title.')
+
+## Last good method
+if movie_title and st.button('Get Recommendations'):
+    try:
+        df_top_ten = recommender.get_recommendations(movie_title)
+
+        st.subheader(f'Top 10 similar movies to "{movie_title}"')
+        
+        # Create a grid with Streamlit's columns
+        num_cols = 3  # Number of columns in the grid
+        rows = len(df_top_ten) // num_cols + (len(df_top_ten) % num_cols > 0)
+        cols = st.columns(num_cols)
+
+        for i, row in df_top_ten.iterrows():
+            with cols[i % num_cols]:
+                poster_url = BASE_POSTER_URL + row['poster_path']
+                st.markdown(f"""
+                <div class="grid-item">
+                    <img src="{poster_url}" alt="{row['movie']} poster">
+                    <h4>{row['movie']}</h4>
+                    <p>{row['language']} ({int(row['year'])}) | Score: {row['score']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    except ValueError as e:
+        st.error(str(e))
+    else:
+        # st.error('Please enter a movie title.')
+        None
