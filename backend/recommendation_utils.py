@@ -24,20 +24,20 @@ class MovieRecommender:
                 'popularity': x.metadata['popularity'],
                 'score': round(x.metadata['score'],1),
                 'synopsis': x.metadata['synopsis'],
-                'year': x.metadata['year']
+                'year': x.metadata['year'],
+                'poster_path': x.metadata['poster_path']
             }
             top_ten.append(movie_metadata)
 
         df_top_ten = pd.DataFrame(top_ten)
         df_top_ten.sort_values(by=['score', 'popularity'], ascending=[False, False], inplace=True)
-        similarities = df_top_ten[['movie', 'language','score','year']]
 
-        return similarities, df_top_ten
+        return df_top_ten
 
-    def _get_summary(self, movie: str, language: str, score: str, synopsis: str, year: str):
+    def generate_summaries(self, movie: str, language: str, score: str, synopsis: str, year: str):
         # Define a prompt template
         prompt_template = """
-        Write a brief summary based on the providedinformation. Do not repeat the question in the output.
+        Write a brief summary based on the provided information. Do not repeat the question in the output.
         Movie: {movie}
         Language: {language}
         Weighted score: {score}
@@ -61,15 +61,3 @@ class MovieRecommender:
         response = response.split("Explanation:")[-1].strip()
         
         return response
-    
-    def generate_summaries(self, df_top_ten):
-        """
-        Generate summaries for each row in the provided DataFrame.
-        """
-        summaries = []
-        for _, row in df_top_ten.iterrows():
-            summary = self._get_summary(
-                row['movie'], row['language'], row['score'], row['synopsis'], row['year']
-            )
-            summaries.append(summary)
-        return summaries

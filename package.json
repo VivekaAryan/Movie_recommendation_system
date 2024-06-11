@@ -1,0 +1,29 @@
+{
+    "name": "movie-recommendations",
+    "version": "1.0.0",
+    "description": "A project to display movie recommendations in a grid layout using Tailwind CSS.",
+    "main": "src/components/pages/api/get_recommendations.js",
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "build:css": "npx tailwindcss -i src/styles/global.css -o template/output.css"
+    },
+    "dependencies": {
+        "axios": "^1.7.2",
+        "next": "^14.2.3",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@typescript-eslint/parser": "^7.2.0",
+        "autoprefixer": "^10.4.19",
+        "eslint": "^9.4.0",
+        "eslint-config-next": "14.2.3",
+        "postcss": "^8.4.38",
+        "tailwindcss": "^3.4.4"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}

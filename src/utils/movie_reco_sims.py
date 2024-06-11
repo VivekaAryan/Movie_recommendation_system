@@ -30,6 +30,5 @@ class MovieRecommender:
 
         df_top_ten = pd.DataFrame(top_ten)
         df_top_ten.sort_values(by=['score', 'popularity'], ascending=[False, False], inplace=True)
-        # similarities = df_top_ten[['movie', 'language','score','year']]
 
         return df_top_ten

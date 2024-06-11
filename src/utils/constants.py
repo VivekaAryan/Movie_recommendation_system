@@ -2,7 +2,7 @@ import configparser
 import os
 
 parser = configparser.ConfigParser()
-parser.read(os.path.join(os.path.dirname(__file__), '../config/config.conf'))
+parser.read(os.path.join(os.path.dirname(__file__), '../../config/config.conf'))
 
 #TMDB
 TMDB_API_ID = parser.get('TMDB', 'tmdb_api_key')
