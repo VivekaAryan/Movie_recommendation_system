@@ -192,7 +192,7 @@ temp/
 out/
 
 # Tailwind CSS output
-template/output.css
+# template/output.css
 
 # Production build output
 build/

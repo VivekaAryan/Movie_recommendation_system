@@ -1,10 +1,13 @@
-// src/pages/index.js
+import React from 'react';
 import MovieRecommender from '../components/MovieRecommender';
 
-export default function Home() {
+const Home = () => {
   return (
     <div>
       <MovieRecommender />
     </div>
   );
-}
+};
+
+export default Home;
+
