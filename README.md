@@ -15,17 +15,17 @@ The Movie Recommendation System is designed to provide users with similar movie 
 - __Next.js__: Used to build the user interface for interacting with the recommendation system.
 
 ## Technologies Used
-#### Frontend
-- Next.js: A React framework that enables server-side rendering and static site generation.
-- React: A JavaScript library for building user interfaces.
-- Axios: A promise-based HTTP client for making API requests.
-- Tailwind CSS: A utility-first CSS framework for styling the application.
+### __Frontend__
+- __Next.js__: A React framework that enables server-side rendering and static site generation.
+- __React__: A JavaScript library for building user interfaces.
+- __Axios__: A promise-based HTTP client for making API requests.
+- __Tailwind CSS__: A utility-first CSS framework for styling the application.
   
-#### Backend
-- FastAPI: A modern, fast (high-performance), web framework for building APIs with Python.
-- Weaviate: A cloud-native, modular, real-time vector search engine built to scale your machine learning models.
-- HuggingFace Transformers: State-of-the-art Natural Language Processing for text generation and embeddings.
-- LangChain: An open-source framework that helps software developers create applications using large language models (LLMs) to perform natural language processing (NLP) tasks
+### __Backend__
+- __FastAPI__: A modern, fast (high-performance), web framework for building APIs with Python.
+- __Weaviate__: A cloud-native, modular, real-time vector search engine built to scale your machine learning models.
+- __HuggingFace Transformers__: State-of-the-art Natural Language Processing for text generation and embeddings.
+- __LangChain__: An open-source framework that helps software developers create applications using large language models (LLMs) to perform natural language processing (NLP) tasks
 
 ## Usage
 1. Open the application in your browser at http://localhost:3000.
