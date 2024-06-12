@@ -6,6 +6,9 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 const LOW_POLY_BACKGROUND = "https://img.freepik.com/free-vector/blue-abstract-background-polygonal-shapes-low-poly-concept_1302-5314.jpg?w=826&t=st=1718153251~exp=1718153851~hmac=2fed24d83131961d5006b62156d448afd806144845cccf2d85dd3d886b3a47e6";
 
 const MovieRecommender = () => {
+   /**
+   * A React component that provides movie recommendations and summaries.
+   */
   const [movieTitle, setMovieTitle] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [summaries, setSummaries] = useState({});
@@ -29,6 +32,9 @@ const MovieRecommender = () => {
   }, []);
 
   const getRecommendations = async () => {
+    /**
+     * Fetch movie recommendations based on the input movie title.
+     */
     try {
       const response = await axios.post(`${API_BASE_URL}/recommendations`, { title: movieTitle });
       setRecommendations(response.data);
@@ -38,6 +44,9 @@ const MovieRecommender = () => {
   };
 
   const getSummary = async (movie) => {
+    /**
+     * Fetch the summary for a specific movie.
+     */
     if (summaries[movie.movie]) {
       setSelectedMovie(movie);
       setModalOpen(true);
@@ -63,6 +72,9 @@ const MovieRecommender = () => {
   };
 
   const handleInputChange = (e) => {
+    /**
+     * Handle the input change event for the movie title input field.
+     */
     const value = e.target.value;
     setMovieTitle(value);
 
@@ -78,6 +90,9 @@ const MovieRecommender = () => {
   };
 
   const closeModal = () => {
+     /**
+     * Close the summary modal.
+     */
     setModalOpen(false);
     setSelectedMovie(null);
   };

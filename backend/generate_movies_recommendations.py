@@ -1,9 +1,33 @@
 class MovieRecommender:
+    """
+    To provide movie recommendations based on the provided movie title using a Weaviate vector database.
+
+    Attributes:
+        soups (pd.Series): A series containing concatenated movie features used for querying.
+        vector_db (object): Weaviate vector database used for similarity searches.
+
+    Methods:
+        get_recommendations(title: str) -> list:
+            Retrieves the top ten movie recommendations based on the provided movie title.
+    """
+
     def __init__(self, soups, vector_db):
         self.soups = soups
         self.vector_db = vector_db
 
     def get_recommendations(self, title):
+        """
+        Retrieves the top ten movie recommendations based on the provided movie title.
+
+        Args:
+            title (str): The title of the movie for which recommendations are to be retrieved.
+
+        Returns:
+            list: A list of dictionaries containing metadata for the top ten recommended movies.
+
+        Raises:
+            ValueError: If the provided movie title is not found in the soups.
+        """
         
         if title not in self.soups:
             raise ValueError(f"Title '{title}' not found in indices")
