@@ -27,7 +27,7 @@ class GenerateSummaries:
         if 'Summary:' in response:
             response = response.split('Summary:')[1].strip()
         
-        for tag in ["- [response]:", "Explanation:", "[response]:"]:
+        for tag in ["- [response]:", "Explanation:", "Response:"]:
             response = response.split(tag, 1)[-1].strip() if tag in response else response
         
         return response
