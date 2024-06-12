@@ -57,3 +57,7 @@ The Movie Recommendation System is designed to provide users with similar movie 
 ## Demo
 
 https://github.com/VivekaAryan/Movie_recommendation_system/assets/52493029/e58af96e-c79b-4491-8da1-1d2bc4521156
+
+## License
+
+This project is licensed under the MIT License.
