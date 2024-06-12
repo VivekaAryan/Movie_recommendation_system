@@ -1,5 +1,3 @@
-import pandas as pd
-
 class MovieRecommender:
     def __init__(self, soups, vector_db):
         self.soups = soups
