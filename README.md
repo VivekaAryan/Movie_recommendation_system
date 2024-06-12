@@ -54,3 +54,6 @@ The Movie Recommendation System is designed to provide users with similar movie 
   
 ![image](https://github.com/VivekaAryan/Movie_recommendation_system/assets/52493029/55377ee5-1925-421e-a4bf-c6034f01f5e2)
 
+## Demo
+
+https://github.com/VivekaAryan/Movie_recommendation_system/assets/52493029/e58af96e-c79b-4491-8da1-1d2bc4521156
