@@ -8,14 +8,28 @@ from langchain_weaviate.vectorstores import WeaviateVectorStore
 from src.utils.constants import WEAVIATE_API_KEY, WEAVIATE_INDEX_NAME, WEAVIATE_URL
 from fastapi.responses import JSONResponse
 from backend.movie_reco_sims import MovieRecommender
+from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+
+# Configure CORS
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this to the specific origin of your frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize your recommender system here
 # Creating soups
 df = pd.read_csv('Data/final_metadata.csv')
 df['soup'] = df.apply(lambda row: f"Title: {row['title']}. Genres: {row['genres']}. Keywords: {row['keywords']}. Cast: {row['cast']}. Director: {row['director']}.", axis=1)
 
+movies_list = [{'title': title} for title in df['title']]
 soups = pd.Series(df['soup'].values, index=df['title'])
 
 # Connecting to Weaviate Cloud
@@ -50,6 +64,14 @@ class SummaryRequest(BaseModel):
     score: str
     synopsis: str
     year: str
+
+
+class Movie(BaseModel):
+    title: str
+
+@app.get("/api/movies", response_model=List[Movie])
+async def get_movies():
+    return movies_list
 
 @app.get("/")
 async def read_root():
