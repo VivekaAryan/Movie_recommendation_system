@@ -48,7 +48,7 @@ const MovieRecommender = () => {
     console.log("Sending payload to summary API:", payload); // Debugging line
     try {
       const response = await axios.post(`${API_BASE_URL}/summary`, payload);
-      setSummaries(prev => ({ ...prev, [movie.title]: response.data.summary }));
+      setSummaries(prev => ({ ...prev, [movie.movie]: response.data.summary }));
     } catch (error) {
       console.error('Error fetching summary:', error);
     }
@@ -114,15 +114,15 @@ const MovieRecommender = () => {
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button onClick={() => getSummary(movie)} className="bg-gray-800 text-white py-1 px-3 rounded shadow hover:bg-gray-900 transition">
-                Summarize
+                Generate Summary
               </button>
             </div>
             <h4 className="font-bold text-lg text-center">{movie.movie}</h4>
             <p className="text-gray-600 mb-4 text-center">{movie.language} ({movie.year}) | Score: {movie.score}</p>
-            {summaries[movie.title] && (
+            {summaries[movie.movie] && (
               <div className="bg-gray-100 p-3 mt-4 rounded shadow-inner w-full">
                 <h5 className="font-semibold mb-2">Summary:</h5>
-                <p className="text-gray-700">{summaries[movie.title]}</p>
+                <p className="text-gray-700">{summaries[movie.movie]}</p>
               </div>
             )}
           </div>
