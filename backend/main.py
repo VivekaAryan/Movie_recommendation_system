@@ -289,7 +289,7 @@ async def get_summary(request: Request):
         
         summary_request = SummaryRequest(**data)
         
-        summary = summarizer.generate_summaries(
+        summary = summarizer.get_summary(
             movie=summary_request.movie,
             language=summary_request.language,
             score=summary_request.score,

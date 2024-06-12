@@ -169,10 +169,10 @@ const MovieRecommender = () => {
   };
 
   const getSummary = async (movie) => {
-    if (summaries[movie.title]) return; // Avoid fetching if already fetched
+    if (summaries[movie.movie]) return; // Avoid fetching if already fetched
 
     const payload = {
-      movie: movie.title,
+      movie: movie.movie,
       language: movie.language || "English",
       score: movie.score.toString(),
       synopsis: movie.synopsis,
@@ -250,7 +250,7 @@ const MovieRecommender = () => {
                 Summarize
               </button>
             </div>
-            <h4 className="font-bold text-lg text-center">{movie.title}</h4>
+            <h4 className="font-bold text-lg text-center">{movie.movie}</h4>
             <p className="text-gray-600 mb-4 text-center">{movie.language} ({movie.year}) | Score: {movie.score}</p>
             {summaries[movie.title] && (
               <div className="bg-gray-100 p-3 mt-4 rounded shadow-inner w-full">
