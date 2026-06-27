@@ -12,6 +12,17 @@ The Movie Recommendation System provides similar movie recommendations and Ollam
 - **Frontend**: Next.js (Pages Router) in `src/` — browser calls Next.js API routes (`/api/*`), which proxy to FastAPI.
 - **Backend**: FastAPI in `backend/` — FAISS + sentence-transformers for recommendations; Ollama for summaries.
 
+## Project structure
+
+```
+backend/              FastAPI app (recommender, summarizer, FAISS)
+src/                  Next.js frontend + BFF API routes
+data/                 Metadata CSV + local FAISS index (gitignored)
+pipeline/archive/     Historical Jupyter notebooks (not used at runtime)
+tests/                Pytest suite
+scripts/              Dev orchestration (dev.sh)
+```
+
 ## Setup
 
 ### 1. Install dependencies
@@ -28,7 +39,7 @@ Install [Ollama](https://ollama.com/), then pull a model that matches your `.env
 
 ```bash
 ollama list
-ollama pull llama3.2
+ollama pull llama3.2:1b-instruct-q4_K_M
 ```
 
 ### 3. Configuration
@@ -43,6 +54,7 @@ cp .env.example .env
 | `OLLAMA_MODEL` | `llama3.2:1b-instruct-q4_K_M` | Model name from `ollama list` |
 | `SKIP_SUMMARY` | `false` | Set `true` to disable summaries |
 | `FAISS_INDEX_PATH` | `data/faiss_index` | Vector index |
+| `METADATA_CSV` | `data/final_metadata.csv` | Movie metadata source |
 | `BACKEND_URL` | `http://127.0.0.1:8000` | Next.js BFF proxy target |
 
 ### 4. Build FAISS index (required for recommendations)
@@ -93,6 +105,10 @@ npm run test:frontend
 | `/api/movies` | GET | Movie list for autocomplete |
 | `/recommendations` | POST | `{ "id": 272 }` or `{ "title": "Batman Begins" }` |
 | `/summary` | POST | Generate plot summary via Ollama |
+
+## Pipeline (archived)
+
+Earlier research notebooks (Weaviate, quantization, etc.) live in [`pipeline/archive/`](pipeline/archive/). They are **not** part of the current runtime. See [`pipeline/archive/README.md`](pipeline/archive/README.md) for details.
 
 ## Eval harness
 

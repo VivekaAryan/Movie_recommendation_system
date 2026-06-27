@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from backend.generate_movies_recommendations import MovieRecommender
+from backend.recommender import MovieRecommender
 from backend.movie_data import EMBEDDING_MODEL, load_movies_df
 
 

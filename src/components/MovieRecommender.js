@@ -3,8 +3,8 @@ import axios from 'axios';
 
 const BASE_POSTER_URL = "https://image.tmdb.org/t/p/w500";
 const API_MOVIES = "/api/movies";
-const API_RECOMMENDATIONS = "/api/get_recommendations";
-const API_SUMMARY = "/api/get_summary";
+const API_RECOMMENDATIONS = "/api/recommendations";
+const API_SUMMARY = "/api/summary";
 const API_HEALTH = "/api/health";
 
 function extractErrorMessage(error) {

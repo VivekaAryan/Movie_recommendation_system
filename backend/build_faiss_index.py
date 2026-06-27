@@ -20,11 +20,12 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from backend.config import METADATA_CSV
 from backend.movie_data import EMBEDDING_MODEL, FAISS_INDEX_PATH, load_movies_df
 
 
 def build_index() -> None:
-    df = load_movies_df(str(PROJECT_ROOT / "Data" / "final_metadata.csv"))
+    df = load_movies_df(str(PROJECT_ROOT / METADATA_CSV))
 
     docs = []
     for _, row in df.iterrows():

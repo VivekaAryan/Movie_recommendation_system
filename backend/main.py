@@ -19,8 +19,8 @@ from backend.dependencies import (
     get_summarizer,
     lifespan,
 )
-from backend.generate_movies_recommendations import MovieRecommender
-from backend.generate_summary_utils import OllamaSummaries
+from backend.recommender import MovieRecommender
+from backend.summarizer import OllamaSummaries
 
 logging.basicConfig(level=logging.INFO)
 

@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.generate_movies_recommendations import MovieRecommender
+from backend.recommender import MovieRecommender
 
 
 @pytest.fixture

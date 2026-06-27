@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-from backend.generate_summary_utils import OllamaSummaries
+from backend.summarizer import OllamaSummaries
 
 
-@patch("backend.generate_summary_utils.ollama.Client")
+@patch("backend.summarizer.ollama.Client")
 def test_get_summary_calls_ollama(mock_client_class):
     mock_client = MagicMock()
     mock_client_class.return_value = mock_client

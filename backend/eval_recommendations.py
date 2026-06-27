@@ -16,7 +16,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from backend.generate_movies_recommendations import MovieRecommender
+from backend.recommender import MovieRecommender
+from backend.config import METADATA_CSV
 from backend.movie_data import EMBEDDING_MODEL, FAISS_INDEX_PATH, load_movies_df
 
 # source_id -> set of movie titles expected in top 10
@@ -37,7 +38,7 @@ def run_eval() -> None:
             "Run: python backend/build_faiss_index.py"
         )
 
-    df = load_movies_df(str(PROJECT_ROOT / "Data" / "final_metadata.csv"))
+    df = load_movies_df(str(PROJECT_ROOT / METADATA_CSV))
     soups = pd.Series(df["soup"].values, index=df["id"].astype(int))
 
     embeddings = HuggingFaceEmbeddings(

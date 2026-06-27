@@ -1,6 +1,6 @@
 import pytest
 
-from backend.generate_movies_recommendations import MovieRecommender
+from backend.recommender import MovieRecommender
 
 
 def test_resolve_movie_id_by_id(sample_movies_df, sample_soups, mock_vector_db):

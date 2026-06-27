@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -162,15 +162,10 @@ cython_debug/
 #.idea/
 
 #raw dataset
-Data/tmdb_movies.csv
+data/tmdb_movies.csv
 
 # Local FAISS index (rebuild via backend/build_faiss_index.py)
 data/faiss_index/
-
-#Quantized model
-/saved-model/
-
-test.ipynb
 
 # Node modules
 node_modules/

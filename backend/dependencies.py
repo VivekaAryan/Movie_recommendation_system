@@ -20,8 +20,8 @@ from backend.config import (
     OLLAMA_MODEL,
     skip_summary,
 )
-from backend.generate_movies_recommendations import MovieRecommender
-from backend.generate_summary_utils import OllamaSummaries
+from backend.recommender import MovieRecommender
+from backend.summarizer import OllamaSummaries
 from backend.movie_data import load_movies_df
 
 logger = logging.getLogger(__name__)
