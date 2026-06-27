@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -162,12 +162,10 @@ cython_debug/
 #.idea/
 
 #raw dataset
-Data/tmdb_movies.csv
+data/tmdb_movies.csv
 
-#Quantized model
-/saved-model/
-
-test.ipynb
+# Local FAISS index (rebuild via backend/build_faiss_index.py)
+data/faiss_index/
 
 # Node modules
 node_modules/
@@ -192,7 +190,6 @@ temp/
 out/
 
 # Tailwind CSS output
-# template/output.css
 
 # Production build output
 build/

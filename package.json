@@ -1,14 +1,19 @@
 {
     "name": "movie-recommendations",
     "version": "1.0.0",
-    "description": "A project to display movie recommendations in a grid layout using Tailwind CSS.",
-    "main": "src/components/pages/api/get_recommendations.js",
+    "description": "Movie recommendation system with Next.js frontend and FastAPI backend.",
+    "private": true,
     "scripts": {
-        "dev": "next dev",
+        "dev": "bash scripts/dev.sh",
+        "dev:backend": ".venv/bin/uvicorn backend.main:app --reload",
+        "dev:frontend": "next dev",
+        "dev:all": "npm run dev",
         "build": "next build",
         "start": "next start",
-        "build:css": "npx tailwindcss -i ./src/styles/global.css -o ./template/output.css",
-        "postinstall": "npm run build:css"
+        "test": "npm run test:backend && npm run test:frontend",
+        "test:backend": "pytest",
+        "test:frontend": "vitest run",
+        "lint": "next lint"
     },
     "dependencies": {
         "axios": "^1.7.2",
@@ -17,12 +22,17 @@
         "react-dom": "^18.2.0"
     },
     "devDependencies": {
-        "@typescript-eslint/parser": "^7.2.0",
+        "@testing-library/jest-dom": "^6.4.2",
+        "@testing-library/react": "^14.2.1",
+        "@vitejs/plugin-react": "^4.2.1",
         "autoprefixer": "^10.4.19",
+        "concurrently": "^8.2.2",
         "eslint": "^8.56.0",
         "eslint-config-next": "^14.2.3",
+        "jsdom": "^24.0.0",
         "postcss": "^8.4.38",
-        "tailwindcss": "^3.4.4"
+        "tailwindcss": "^3.4.4",
+        "vitest": "^1.6.0"
     },
     "keywords": [],
     "author": "",
