@@ -7,15 +7,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { movie, language, score, synopsis, year } = req.body;
+  const { seed_movie_id, recommended } = req.body;
 
   try {
-    const response = await axios.post(`${BACKEND_URL}/summary`, {
-      movie,
-      language,
-      score,
-      synopsis,
-      year,
+    const response = await axios.post(`${BACKEND_URL}/insights`, {
+      seed_movie_id,
+      recommended,
     });
     res.status(200).json(response.data);
   } catch (error) {

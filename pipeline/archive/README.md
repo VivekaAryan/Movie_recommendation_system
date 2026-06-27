@@ -7,8 +7,8 @@ These notebooks are **historical research artifacts** from an earlier version of
 The live app uses:
 
 - **FAISS** + sentence-transformers for recommendations (`backend/recommender.py`)
-- **Ollama** for plot summaries (`backend/summarizer.py`)
-- **FastAPI** backend + **Next.js** frontend
+- **Ollama** for AI movie insights (`backend/summarizer.py`) — summary, recommendation rationale, audience fit, contrast notes, and discussion questions
+- **FastAPI** backend + **Next.js** frontend (**MovieMatch** UI)
 
 ## Why these notebooks are archived
 

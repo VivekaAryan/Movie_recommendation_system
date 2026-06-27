@@ -20,14 +20,33 @@ const sampleRecs = [
     synopsis: "Batman faces the Joker.",
     year: 2008,
     poster_path: "/b.jpg",
+    genres: "Action",
+    cast: "Christian Bale",
+    director: "Christopher Nolan",
     similarity_score: 0.9,
     final_score: 0.85,
+  },
+  {
+    movie_id: 3,
+    movie: "Inception",
+    language: "English",
+    popularity: 150,
+    score: 8.0,
+    synopsis: "A thief enters dreams.",
+    year: 2010,
+    poster_path: "/c.jpg",
+    genres: "Sci-Fi",
+    cast: "Leonardo DiCaprio",
+    director: "Christopher Nolan",
+    similarity_score: 0.7,
+    final_score: 0.75,
   },
 ];
 
 describe("MovieRecommender", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     axios.get.mockImplementation((url) => {
       if (url === "/api/health") {
         return Promise.resolve({ data: { faiss: true, llm: true, movies: 2 } });
@@ -80,7 +99,7 @@ describe("MovieRecommender", () => {
       expect(axios.get).toHaveBeenCalledWith("/api/movies");
     });
 
-    const input = screen.getByPlaceholderText("Start typing your movie here:");
+    const input = screen.getByPlaceholderText("Search by title, e.g. Inception");
     fireEvent.change(input, { target: { value: "Batman" } });
 
     await waitFor(() => {
@@ -88,10 +107,21 @@ describe("MovieRecommender", () => {
     });
 
     fireEvent.click(screen.getByText("Batman Begins (2005)"));
-    fireEvent.click(screen.getByRole("button", { name: /get recommendations/i }));
 
     await waitFor(() => {
       expect(screen.getByText("The Dark Knight")).toBeInTheDocument();
+    });
+
+    expect(axios.post).toHaveBeenCalledWith("/api/recommendations", { id: 1 });
+  });
+
+  it("renders branded header and status pills when services are healthy", async () => {
+    render(<MovieRecommender />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/MovieMatch/i);
+      expect(screen.getByText("Recommendations ready")).toBeInTheDocument();
+      expect(screen.getByText("AI insights ready")).toBeInTheDocument();
     });
   });
 
@@ -107,39 +137,92 @@ describe("MovieRecommender", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("llm-unavailable-banner")).toHaveTextContent(
-        /Summaries are disabled/
+        /Insights disabled/
       );
     });
   });
 
-  it("shows message when summary service returns 503", async () => {
-    axios.post
-      .mockResolvedValueOnce({ data: sampleRecs })
-      .mockRejectedValueOnce({
-        response: { status: 503, data: { error: "Summary service unavailable" } },
-      });
+  it("does not show no-results dropdown when input matches selected movie", async () => {
+    axios.post.mockResolvedValue({ data: sampleRecs });
 
     render(<MovieRecommender />);
 
     await waitFor(() => expect(axios.get).toHaveBeenCalled());
 
-    const input = screen.getByPlaceholderText("Start typing your movie here:");
+    const input = screen.getByPlaceholderText("Search by title, e.g. Inception");
     fireEvent.change(input, { target: { value: "Batman" } });
 
     await waitFor(() => {
       fireEvent.click(screen.getByText("Batman Begins (2005)"));
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /get recommendations/i }));
+    await waitFor(() => {
+      expect(input).toHaveValue("Batman Begins (2005)");
+    });
+
+    fireEvent.focus(input);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/No movies found/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it("re-sorts recommendations when sort option changes", async () => {
+    axios.post.mockResolvedValue({ data: sampleRecs });
+
+    render(<MovieRecommender />);
+
+    await waitFor(() => expect(axios.get).toHaveBeenCalled());
+
+    const input = screen.getByPlaceholderText("Search by title, e.g. Inception");
+    fireEvent.change(input, { target: { value: "Batman" } });
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText("Batman Begins (2005)"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/sort by/i)).toBeInTheDocument();
+    });
+
+    const cards = () => screen.getAllByRole("article");
+    expect(cards()[0]).toHaveTextContent("The Dark Knight");
+
+    fireEvent.change(screen.getByLabelText(/sort by/i), {
+      target: { value: "year-desc" },
+    });
+
+    await waitFor(() => {
+      expect(cards()[0]).toHaveTextContent("Inception");
+    });
+  });
+
+  it("shows message when insights service returns 503", async () => {
+    axios.post
+      .mockResolvedValueOnce({ data: [sampleRecs[0]] })
+      .mockRejectedValueOnce({
+        response: { status: 503, data: { error: "Insights service unavailable" } },
+      });
+
+    render(<MovieRecommender />);
+
+    await waitFor(() => expect(axios.get).toHaveBeenCalled());
+
+    const input = screen.getByPlaceholderText("Search by title, e.g. Inception");
+    fireEvent.change(input, { target: { value: "Batman" } });
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText("Batman Begins (2005)"));
+    });
 
     await waitFor(() => {
       expect(screen.getByText("The Dark Knight")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /generate summary/i }));
+    fireEvent.click(screen.getByRole("button", { name: /explore match/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(/summary service unavailable/i);
+      expect(screen.getByRole("alert")).toHaveTextContent(/insights service unavailable/i);
     });
   });
 });

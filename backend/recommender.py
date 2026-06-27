@@ -4,6 +4,8 @@ from typing import Optional
 import pandas as pd
 from rapidfuzz import fuzz, process
 
+from backend.movie_data import format_cast, format_director, format_genres
+
 
 class MovieRecommender:
     """
@@ -59,6 +61,35 @@ class MovieRecommender:
             return [1.0] * len(values)
         return [(v - min_v) / (max_v - min_v) for v in values]
 
+    def _row_details(self, movie_id: int) -> dict[str, str]:
+        rows = self.movies_df[self.movies_df["id"] == movie_id]
+        if rows.empty:
+            return {"genres": "", "cast": "", "director": ""}
+        row = rows.iloc[0]
+        return {
+            "genres": format_genres(row.get("genres", "")),
+            "cast": format_cast(row.get("cast", "")),
+            "director": format_director(row.get("director", "")),
+        }
+
+    def get_movie_context(self, movie_id: int) -> dict:
+        rows = self.movies_df[self.movies_df["id"] == movie_id]
+        if rows.empty:
+            raise ValueError(f"Movie id '{movie_id}' not found")
+        row = rows.iloc[0]
+        details = self._row_details(movie_id)
+        overview = row.get("overview", "")
+        if pd.isna(overview):
+            overview = ""
+        return {
+            "movie": row["title"],
+            "year": int(row["year"]),
+            "language": row["original_language"],
+            "score": round(float(row["score"]), 1),
+            "synopsis": str(overview),
+            **details,
+        }
+
     def get_recommendations(
         self, movie_id: Optional[int] = None, title: Optional[str] = None
     ) -> list[dict]:
@@ -73,6 +104,7 @@ class MovieRecommender:
             if doc_id == resolved_id:
                 continue
 
+            details = self._row_details(int(doc_id))
             candidates.append(
                 {
                     "movie_id": int(doc_id),
@@ -83,6 +115,9 @@ class MovieRecommender:
                     "synopsis": doc.metadata["synopsis"],
                     "year": int(doc.metadata["year"]),
                     "poster_path": doc.metadata["poster_path"],
+                    "genres": details["genres"],
+                    "cast": details["cast"],
+                    "director": details["director"],
                     "sim": float(1 / (1 + distance)),
                 }
             )

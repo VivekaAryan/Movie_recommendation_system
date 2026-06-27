@@ -17,8 +17,18 @@ def client(sample_movies_df, sample_soups, mock_vector_db):
     ]
 
     class MockSummarizer:
-        def get_summary(self, **kwargs):
-            return "A gripping story about heroes and villains."
+        def get_insights(self, **kwargs):
+            return {
+                "summary": "Batman faces the Joker in a fight for Gotham.",
+                "why_recommended": "A gripping follow-up for fans of the seed movie.",
+                "who_should_watch": "Action and thriller fans.",
+                "contrast_note": "Darker and more intense than the seed film.",
+                "discussion_questions": [
+                    "Does the hero change by the end?",
+                    "What drives the villain?",
+                    "Which scene stayed with you?",
+                ],
+            }
 
     set_state_for_testing(
         recommender=recommender,
@@ -96,31 +106,44 @@ def test_recommendations_invalid_id(client):
     assert response.status_code == 400
 
 
-def test_summary_with_mock_summarizer(client):
+def test_insights_with_mock_summarizer(client):
     response = client.post(
-        "/summary",
+        "/insights",
         json={
-            "movie": "The Dark Knight",
-            "language": "English",
-            "score": "8.5",
-            "synopsis": "Batman faces the Joker.",
-            "year": "2008",
+            "seed_movie_id": 1,
+            "recommended": {
+                "movie": "The Dark Knight",
+                "language": "English",
+                "score": 8.5,
+                "synopsis": "Batman faces the Joker.",
+                "year": 2008,
+                "genres": "Action",
+                "cast": "Christian Bale",
+                "director": "Christopher Nolan",
+            },
         },
     )
     assert response.status_code == 200
-    assert "summary" in response.json()
-    assert len(response.json()["summary"]) > 0
+    data = response.json()["insights"]
+    assert data["why_recommended"]
+    assert len(data["discussion_questions"]) == 3
 
 
-def test_summary_unavailable_when_no_llm(client_no_llm):
+def test_insights_unavailable_when_no_llm(client_no_llm):
     response = client_no_llm.post(
-        "/summary",
+        "/insights",
         json={
-            "movie": "Test",
-            "language": "English",
-            "score": "7.0",
-            "synopsis": "A test plot.",
-            "year": "2020",
+            "seed_movie_id": 1,
+            "recommended": {
+                "movie": "Test",
+                "language": "English",
+                "score": 7.0,
+                "synopsis": "A test plot.",
+                "year": 2020,
+                "genres": "Drama",
+                "cast": "Actor",
+                "director": "Director",
+            },
         },
     )
     assert response.status_code == 503

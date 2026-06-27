@@ -1,13 +1,8 @@
-import React from 'react';
-import MovieRecommender from '../components/MovieRecommender';
+import React from "react";
+import MovieRecommender from "../components/MovieRecommender";
 
 const Home = () => {
-  return (
-    <div>
-      <MovieRecommender />
-    </div>
-  );
+  return <MovieRecommender />;
 };
 
 export default Home;
-

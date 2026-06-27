@@ -56,6 +56,26 @@ def test_get_recommendations_excludes_source(
     assert "sim" not in recs[0]
 
 
+def test_get_recommendations_includes_metadata(
+    sample_movies_df, sample_soups, mock_vector_db
+):
+    recommender = MovieRecommender(sample_soups, mock_vector_db, sample_movies_df)
+    recs = recommender.get_recommendations(movie_id=1)
+
+    assert all("genres" in r for r in recs)
+    assert all("cast" in r for r in recs)
+    assert all("director" in r for r in recs)
+
+
+def test_get_movie_context(sample_movies_df, sample_soups, mock_vector_db):
+    recommender = MovieRecommender(sample_soups, mock_vector_db, sample_movies_df)
+    context = recommender.get_movie_context(2)
+
+    assert context["movie"] == "The Dark Knight"
+    assert context["genres"] == "Action"
+    assert context["director"] == "Christopher Nolan"
+
+
 def test_get_recommendations_sorted_by_final_score(
     sample_movies_df, sample_soups, mock_vector_db
 ):

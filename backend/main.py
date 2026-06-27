@@ -7,7 +7,7 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from typing import Annotated, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -30,12 +30,9 @@ class RecommendationRequest(BaseModel):
     title: Optional[str] = None
 
 
-class SummaryRequest(BaseModel):
-    movie: str
-    language: str
-    score: str
-    synopsis: str
-    year: str
+class InsightRequest(BaseModel):
+    seed_movie_id: int
+    recommended: dict
 
 
 class Movie(BaseModel):
@@ -101,34 +98,47 @@ def create_app(*, eager_init: bool = False) -> FastAPI:
             logging.error("Unexpected Error: %s", str(e))
             raise HTTPException(status_code=500, detail="Internal Server Error") from e
 
-    @application.post("/summary")
-    async def get_summary(
-        request: Request,
+    @application.post("/insights")
+    async def get_insights(
+        request: InsightRequest,
+        recommender: Annotated[MovieRecommender, Depends(get_recommender)],
         summarizer: Annotated[OllamaSummaries | None, Depends(get_summarizer)],
     ):
         if summarizer is None:
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Summary service unavailable. Ensure Ollama is running "
+                    "Insights service unavailable. Ensure Ollama is running "
                     "and OLLAMA_MODEL is set in .env (see .env.example)."
                 ),
             )
 
         try:
-            data = await request.json()
-            logging.info("Received summary request: %s", data)
+            logging.info("Received insights request for seed id: %s", request.seed_movie_id)
+            seed = recommender.get_movie_context(request.seed_movie_id)
+            rec = request.recommended
 
-            summary_request = SummaryRequest(**data)
-
-            summary = summarizer.get_summary(
-                movie=summary_request.movie,
-                language=summary_request.language,
-                score=summary_request.score,
-                synopsis=summary_request.synopsis,
-                year=summary_request.year,
+            insights = summarizer.get_insights(
+                seed_movie=seed["movie"],
+                seed_year=str(seed["year"]),
+                seed_genres=seed.get("genres", ""),
+                seed_synopsis=seed.get("synopsis", ""),
+                seed_director=seed.get("director", ""),
+                recommended_movie=rec["movie"],
+                recommended_year=str(rec["year"]),
+                recommended_language=rec.get("language", "English"),
+                recommended_score=str(rec.get("score", "")),
+                recommended_genres=rec.get("genres", ""),
+                recommended_synopsis=rec.get("synopsis", ""),
+                recommended_cast=rec.get("cast", ""),
+                recommended_director=rec.get("director", ""),
             )
-            return {"summary": summary}
+            return {"insights": insights}
+        except ValueError as e:
+            logging.error("Error: %s", str(e))
+            detail = str(e)
+            status = 400 if "not found" in detail.lower() else 502
+            raise HTTPException(status_code=status, detail=detail) from e
         except Exception as e:
             logging.error("Unexpected Error: %s", str(e))
             raise HTTPException(status_code=500, detail="Internal Server Error") from e

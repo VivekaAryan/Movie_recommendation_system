@@ -48,7 +48,7 @@ def get_app_state() -> AppState:
 
 def _load_summarizer() -> OllamaSummaries | None:
     if skip_summary():
-        logger.info("SKIP_SUMMARY set; summary endpoint disabled")
+        logger.info("SKIP_SUMMARY set; insights endpoint disabled")
         return None
 
     try:
