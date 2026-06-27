@@ -1,100 +1,34 @@
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
-import pandas as pd
-import weaviate
-from weaviate.auth import AuthApiKey
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_weaviate.vectorstores import WeaviateVectorStore
-from src.utils.constants import WEAVIATE_API_KEY, WEAVIATE_INDEX_NAME, WEAVIATE_URL
-from fastapi.responses import JSONResponse
-from backend.generate_movies_recommendations import MovieRecommender
-from backend.generate_summary_utils import GenerateSummaries
-from typing import List
-from fastapi.middleware.cors import CORSMiddleware
-
 import logging
+import os
+
+# Avoid FAISS/OpenMP segfaults on macOS when multiple threads are used
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
+from typing import Annotated, List, Optional
+
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from backend.dependencies import (
+    get_app_state,
+    get_movies_list,
+    get_recommender,
+    get_summarizer,
+    lifespan,
+)
+from backend.generate_movies_recommendations import MovieRecommender
+from backend.generate_summary_utils import OllamaSummaries
 
 logging.basicConfig(level=logging.INFO)
 
-import torch
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    pipeline,
-)
-from langchain_huggingface.llms import HuggingFacePipeline
-
-app = FastAPI()
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Adjust this to the specific origin of your frontend
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Initialize your recommender system here
-# Creating soups
-df = pd.read_csv('Data/final_metadata.csv')
-df['soup'] = df.apply(lambda row: f"Title: {row['title']}. Genres: {row['genres']}. Keywords: {row['keywords']}. Cast: {row['cast']}. Director: {row['director']}.", axis=1)
-
-movies_list = [{'title': title} for title in df['title']]
-soups = pd.Series(df['soup'].values, index=df['title'])
-
-# Connecting to Weaviate Cloud
-client = weaviate.connect_to_weaviate_cloud(
-    cluster_url=WEAVIATE_URL,                       
-    auth_credentials=AuthApiKey(WEAVIATE_API_KEY),  
-    skip_init_checks=True    
-)
-
-embedding_model_name = "sentence-transformers/all-MiniLM-L6-v2"
-model_kwargs = {"device": "cuda"}
-embeddings = HuggingFaceEmbeddings(
-  model_name=embedding_model_name, 
-  model_kwargs=model_kwargs
-)
-
-vector_db = WeaviateVectorStore(
-    client=client,
-    index_name=WEAVIATE_INDEX_NAME,
-    text_key="text",
-    embedding=embeddings
-)
-
-model = AutoModelForCausalLM.from_pretrained("./saved-model/quantized_model")
-tokenizer = AutoTokenizer.from_pretrained("./saved-model/quantized_tokenizer")
-
-stop_token_ids = [0]
-
-tokenizer.model_max_length = 2048
-
-# build huggingface pipeline for using Phi-3
-pipeline = pipeline(
-    "text-generation",
-    model=model,
-    tokenizer=tokenizer,
-    use_cache=True,
-    device_map="auto",
-    max_length=2048,
-    do_sample=True,
-    top_k=1,
-    num_return_sequences=1,
-    eos_token_id=tokenizer.eos_token_id,
-    pad_token_id=tokenizer.eos_token_id,
-    truncation=True
-)
-
-llm = HuggingFacePipeline(pipeline=pipeline)
-
-# Initializing the Recommender and Summarizer
-recommender = MovieRecommender(soups, vector_db)
-summarizer = GenerateSummaries(llm)
 
 class RecommendationRequest(BaseModel):
-    title: str
+    id: Optional[int] = None
+    title: Optional[str] = None
+
 
 class SummaryRequest(BaseModel):
     movie: str
@@ -103,49 +37,108 @@ class SummaryRequest(BaseModel):
     synopsis: str
     year: str
 
+
 class Movie(BaseModel):
+    id: int
     title: str
+    year: int
 
-@app.get("/api/movies", response_model=List[Movie])
-async def get_movies():
-    return movies_list
 
-@app.get("/")
-async def read_root():
-    return {"message": "Welcome to the Movie Recommender API"}
+def create_app(*, eager_init: bool = False) -> FastAPI:
+    """
+    Create the FastAPI application.
 
-@app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
-    return JSONResponse(content=None)
+    Args:
+        eager_init: If True, load FAISS/embeddings at import time (integration tests).
+                    If False, defer loading to lifespan (default for uvicorn).
+    """
+    application = FastAPI(lifespan=lifespan)
 
-@app.post("/recommendations")
-async def get_recommendations(request: RecommendationRequest):
-    try:
-        recommendations = recommender.get_recommendations(request.title)
-        return recommendations
-    except ValueError as e:
-        logging.error(f"Error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logging.error(f"Unexpected Error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-@app.post("/summary")
-async def get_summary(request: Request):
-    try:
-        data = await request.json()
-        logging.info(f"Received summary request: {data}")
-        
-        summary_request = SummaryRequest(**data)
-        
-        summary = summarizer.get_summary(
-            movie=summary_request.movie,
-            language=summary_request.language,
-            score=summary_request.score,
-            synopsis=summary_request.synopsis,
-            year=summary_request.year
-        )
-        return {"summary": summary}
-    except Exception as e:
-        logging.error(f"Unexpected Error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    @application.get("/api/movies", response_model=List[Movie])
+    async def get_movies(movies: Annotated[list, Depends(get_movies_list)]):
+        return movies
+
+    @application.get("/")
+    async def read_root():
+        return {"message": "Welcome to the Movie Recommender API"}
+
+    @application.get("/health")
+    async def health():
+        state = get_app_state()
+        movies_count = len(state.movies_list) if state.movies_list else 0
+        return {
+            "faiss": state.faiss_loaded,
+            "llm": state.llm_loaded,
+            "movies": movies_count,
+        }
+
+    @application.get("/favicon.ico", include_in_schema=False)
+    async def favicon():
+        return JSONResponse(content=None)
+
+    @application.post("/recommendations")
+    async def get_recommendations(
+        request: RecommendationRequest,
+        recommender: Annotated[MovieRecommender, Depends(get_recommender)],
+    ):
+        try:
+            recommendations = recommender.get_recommendations(
+                movie_id=request.id, title=request.title
+            )
+            return recommendations
+        except ValueError as e:
+            logging.error("Error: %s", str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        except Exception as e:
+            logging.error("Unexpected Error: %s", str(e))
+            raise HTTPException(status_code=500, detail="Internal Server Error") from e
+
+    @application.post("/summary")
+    async def get_summary(
+        request: Request,
+        summarizer: Annotated[OllamaSummaries | None, Depends(get_summarizer)],
+    ):
+        if summarizer is None:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Summary service unavailable. Ensure Ollama is running "
+                    "and OLLAMA_MODEL is set in .env (see .env.example)."
+                ),
+            )
+
+        try:
+            data = await request.json()
+            logging.info("Received summary request: %s", data)
+
+            summary_request = SummaryRequest(**data)
+
+            summary = summarizer.get_summary(
+                movie=summary_request.movie,
+                language=summary_request.language,
+                score=summary_request.score,
+                synopsis=summary_request.synopsis,
+                year=summary_request.year,
+            )
+            return {"summary": summary}
+        except Exception as e:
+            logging.error("Unexpected Error: %s", str(e))
+            raise HTTPException(status_code=500, detail="Internal Server Error") from e
+
+    if eager_init:
+        from backend.dependencies import _initialize_state
+
+        _initialize_state(get_app_state())
+
+    return application
+
+
+app = create_app()

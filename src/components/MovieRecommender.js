@@ -1,56 +1,124 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const BASE_POSTER_URL = "https://image.tmdb.org/t/p/w500";
-const API_BASE_URL = "http://127.0.0.1:8000";
-const LOW_POLY_BACKGROUND = "https://img.freepik.com/free-vector/blue-abstract-background-polygonal-shapes-low-poly-concept_1302-5314.jpg?w=826&t=st=1718153251~exp=1718153851~hmac=2fed24d83131961d5006b62156d448afd806144845cccf2d85dd3d886b3a47e6";
+const API_MOVIES = "/api/movies";
+const API_RECOMMENDATIONS = "/api/get_recommendations";
+const API_SUMMARY = "/api/get_summary";
+const API_HEALTH = "/api/health";
+
+function extractErrorMessage(error) {
+  if (error.response?.data?.error) {
+    return error.response.data.error;
+  }
+  if (error.response?.data?.detail) {
+    return error.response.data.detail;
+  }
+  return "Something went wrong. Is the backend running?";
+}
 
 const MovieRecommender = () => {
-   /**
-   * A React component that provides movie recommendations and summaries.
-   */
   const [movieTitle, setMovieTitle] = useState('');
+  const [selectedMovieId, setSelectedMovieId] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [summaries, setSummaries] = useState({});
-  const [suggestions, setSuggestions] = useState([]);
+  const [allMovies, setAllMovies] = useState([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const [isLoadingMovies, setIsLoadingMovies] = useState(true);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryLoadingFor, setSummaryLoadingFor] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [llmAvailable, setLlmAvailable] = useState(null);
+
   useEffect(() => {
-    // Fetch movie list from the backend
-    const fetchMovies = async () => {
+    const fetchHealth = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/movies`);
-        setSuggestions(response.data);
+        const response = await axios.get(API_HEALTH);
+        setLlmAvailable(response.data.llm === true);
+      } catch {
+        setLlmAvailable(false);
+      }
+    };
+
+    fetchHealth();
+  }, []);
+
+  useEffect(() => {
+    const fetchMovies = async () => {
+      setIsLoadingMovies(true);
+      setErrorMessage(null);
+      try {
+        const response = await axios.get(API_MOVIES);
+        setAllMovies(response.data);
       } catch (error) {
-        console.error('Error fetching movie list:', error);
+        setErrorMessage(extractErrorMessage(error));
+      } finally {
+        setIsLoadingMovies(false);
       }
     };
 
     fetchMovies();
   }, []);
 
+  const filterSuggestions = useCallback((value, movies) => {
+    if (!value) {
+      setFilteredSuggestions([]);
+      setDropdownOpen(false);
+      return;
+    }
+    const matches = movies.filter(movie =>
+      movie.title.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredSuggestions(matches);
+    setDropdownOpen(true);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      filterSuggestions(movieTitle, allMovies);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [movieTitle, allMovies, filterSuggestions]);
+
   const getRecommendations = async () => {
-    /**
-     * Fetch movie recommendations based on the input movie title.
-     */
+    if (!selectedMovieId) {
+      setErrorMessage("Please select a movie from the dropdown first.");
+      return;
+    }
+
+    setIsLoadingRecs(true);
+    setErrorMessage(null);
     try {
-      const response = await axios.post(`${API_BASE_URL}/recommendations`, { title: movieTitle });
+      const response = await axios.post(API_RECOMMENDATIONS, { id: selectedMovieId });
       setRecommendations(response.data);
+      if (response.data.length === 0) {
+        setErrorMessage("No similar movies found for this title.");
+      }
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
+      setErrorMessage(extractErrorMessage(error));
+      setRecommendations([]);
+    } finally {
+      setIsLoadingRecs(false);
     }
   };
 
   const getSummary = async (movie) => {
-    /**
-     * Fetch the summary for a specific movie.
-     */
+    if (!llmAvailable) {
+      setErrorMessage(
+        "Summaries disabled — ensure Ollama is running and restart the app with npm run dev."
+      );
+      return;
+    }
+
     if (summaries[movie.movie]) {
       setSelectedMovie(movie);
       setModalOpen(true);
-      return; // Avoid fetching if already fetched
+      return;
     }
 
     const payload = {
@@ -60,89 +128,141 @@ const MovieRecommender = () => {
       synopsis: movie.synopsis,
       year: movie.year.toString()
     };
-    console.log("Sending payload to summary API:", payload); // Debugging line
+
+    setIsLoadingSummary(true);
+    setSummaryLoadingFor(movie.movie);
+    setErrorMessage(null);
+
     try {
-      const response = await axios.post(`${API_BASE_URL}/summary`, payload);
+      const response = await axios.post(API_SUMMARY, payload);
       setSummaries(prev => ({ ...prev, [movie.movie]: response.data.summary }));
       setSelectedMovie(movie);
       setModalOpen(true);
     } catch (error) {
-      console.error('Error fetching summary:', error);
+      const message = extractErrorMessage(error);
+      if (error.response?.status === 503) {
+        setErrorMessage(
+          "Summary service unavailable. Ensure Ollama is running and OLLAMA_MODEL is set in .env."
+        );
+      } else {
+        setErrorMessage(message);
+      }
+    } finally {
+      setIsLoadingSummary(false);
+      setSummaryLoadingFor(null);
     }
   };
 
+  const formatMovieLabel = (movie) => `${movie.title} (${movie.year})`;
+
   const handleInputChange = (e) => {
-    /**
-     * Handle the input change event for the movie title input field.
-     */
     const value = e.target.value;
     setMovieTitle(value);
+    setSelectedMovieId(null);
+    setErrorMessage(null);
+  };
 
-    if (value) {
-      const filteredSuggestions = suggestions.filter(movie =>
-        movie.title.toLowerCase().includes(value.toLowerCase())
-      );
-      setSuggestions(filteredSuggestions);
-      setDropdownOpen(true);
-    } else {
-      setDropdownOpen(false);
-    }
+  const handleSuggestionSelect = (movie) => {
+    setMovieTitle(formatMovieLabel(movie));
+    setSelectedMovieId(movie.id);
+    setDropdownOpen(false);
+    setErrorMessage(null);
   };
 
   const closeModal = () => {
-     /**
-     * Close the summary modal.
-     */
     setModalOpen(false);
     setSelectedMovie(null);
   };
 
+  const recommendationKey = (movie) => `${movie.movie_id ?? movie.movie}-${movie.year}`;
+
   return (
     <div className="min-h-screen bg-blue-100 flex flex-col items-center p-6">
+      {llmAvailable === false && (
+        <div
+          role="status"
+          data-testid="llm-unavailable-banner"
+          className="w-full max-w-3xl mb-4 p-4 bg-amber-100 border border-amber-400 text-amber-900 rounded-lg"
+        >
+          Summaries are disabled. Ensure Ollama is running and start the app with{" "}
+          <code className="font-mono text-sm">npm run dev</code>.
+        </div>
+      )}
+
+      {errorMessage && (
+        <div
+          role="alert"
+          className="w-full max-w-3xl mb-4 p-4 bg-red-100 border border-red-400 text-red-800 rounded-lg"
+        >
+          {errorMessage}
+        </div>
+      )}
+
       <div
-        className="w-full max-w-full flex flex-col items-center p-6 mb-8 rounded-lg shadow-lg"
-        style={{ backgroundImage: `url(${LOW_POLY_BACKGROUND})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+        className="w-full max-w-full flex flex-col items-center p-6 mb-8 rounded-lg shadow-lg bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600"
       >
         <h1 className="text-4xl font-bold mb-8 text-center text-white">Movie Recommendation System</h1>
+
+        {isLoadingMovies ? (
+          <p className="text-white mb-4" data-testid="loading-movies">Loading movie list...</p>
+        ) : null}
+
         <input
           type="text"
           value={movieTitle}
           onChange={handleInputChange}
           placeholder="Start typing your movie here:"
-          className="border p-3 mb-5 w-full max-w-md rounded-full shadow-2xl focus:outline-none focus:ring-2 focus:ring-black bg-white"
+          disabled={isLoadingMovies}
+          className="border p-3 mb-5 w-full max-w-md rounded-full shadow-2xl focus:outline-none focus:ring-2 focus:ring-black bg-white disabled:opacity-60"
         />
-        {dropdownOpen && (
+        {dropdownOpen && filteredSuggestions.length > 0 && (
           <ul className="bg-white border border-gray-300 rounded-md shadow-md max-h-60 overflow-y-auto w-full max-w-md">
-            {suggestions.map((suggestion, index) => (
+            {filteredSuggestions.map((suggestion) => (
               <li
-                key={index}
+                key={suggestion.id}
                 className="p-2 cursor-pointer hover:bg-gray-200"
-                onClick={() => {
-                  setMovieTitle(suggestion.title);
-                  setDropdownOpen(false);
-                }}
+                onClick={() => handleSuggestionSelect(suggestion)}
               >
-                {suggestion.title}
+                {formatMovieLabel(suggestion)}
               </li>
             ))}
           </ul>
         )}
-        <button onClick={getRecommendations} className="bg-white text-black py-2 px-6 rounded-full shadow hover:bg-blue-400 hover:ring-1 hover:ring-black hover:font-bold transition mt-4">
-          Get Recommendations
+        <button
+          onClick={getRecommendations}
+          disabled={isLoadingMovies || isLoadingRecs}
+          className="bg-white text-black py-2 px-6 rounded-full shadow hover:bg-blue-400 hover:ring-1 hover:ring-black hover:font-bold transition mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isLoadingRecs ? "Loading recommendations..." : "Get Recommendations"}
         </button>
       </div>
+
       {recommendations.length > 0 && (
-        <h2 className="text-2xl font-semibold mb-6">Top 10 movies similar to: <span className="font-bold">{movieTitle}</span></h2>
+        <h2 className="text-2xl font-semibold mb-6">
+          Top 10 movies similar to: <span className="font-bold">{movieTitle}</span>
+        </h2>
       )}
+
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-5/6 max-w-7xl">
-        {recommendations.slice(0, 10).map((movie, index) => (
-          <div key={index} className="bg-blue-400 p-4 rounded-lg shadow-md flex flex-col items-center group relative">
-            <div className="h-auto w-full mb-4 group-hover:opacity-50 transition-opacity duration-300"> 
-              <img src={BASE_POSTER_URL + movie.poster_path} alt={`${movie.title} poster`} className="rounded w-full" />
+        {recommendations.slice(0, 10).map((movie) => (
+          <div
+            key={recommendationKey(movie)}
+            className="bg-blue-400 p-4 rounded-lg shadow-md flex flex-col items-center group relative"
+          >
+            <div className="h-auto w-full mb-4 group-hover:opacity-50 transition-opacity duration-300">
+              <img src={BASE_POSTER_URL + movie.poster_path} alt={`${movie.movie} poster`} className="rounded w-full" />
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <button onClick={() => getSummary(movie)} className="bg-gray-800 text-white py-1 px-3 rounded shadow hover:bg-gray-900 transition">
-                Generate Summary
+              <button
+                onClick={() => getSummary(movie)}
+                disabled={isLoadingSummary || llmAvailable === false}
+                className="bg-gray-800 text-white py-1 px-3 rounded shadow hover:bg-gray-900 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isLoadingSummary && summaryLoadingFor === movie.movie
+                  ? "Generating..."
+                  : llmAvailable === false
+                    ? "Summary Unavailable"
+                    : "Generate Summary"}
               </button>
             </div>
             <h4 className="font-bold text-lg text-center">{movie.movie}</h4>
@@ -150,6 +270,7 @@ const MovieRecommender = () => {
           </div>
         ))}
       </div>
+
       {modalOpen && selectedMovie && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-gray-300 p-6 rounded-lg shadow-lg w-3/4 max-w-lg">

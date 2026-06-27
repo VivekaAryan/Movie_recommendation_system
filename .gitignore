@@ -164,6 +164,9 @@ cython_debug/
 #raw dataset
 Data/tmdb_movies.csv
 
+# Local FAISS index (rebuild via backend/build_faiss_index.py)
+data/faiss_index/
+
 #Quantized model
 /saved-model/
 
@@ -192,7 +195,6 @@ temp/
 out/
 
 # Tailwind CSS output
-# template/output.css
 
 # Production build output
 build/
